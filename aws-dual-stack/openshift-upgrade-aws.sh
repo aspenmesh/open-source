@@ -1,4 +1,16 @@
 #!/bin/bash
+
+# Portions Copyright Aspen Mesh Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#    http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 set -Eueo pipefail
 OLDIFS=$IFS
 
@@ -7,6 +19,7 @@ usage() {
 Created by Aspen Mesh:
 Add IPv6 underlay networking to an existing ipv4 OpenShift Cluster infrastructure in AWS. Is idempotent and can be
 run multiple times.
+**Warning: this overwrites and exports KUBECONFIG
 Requires: aws cli <2.4.21, openshift (installer, client, pull secret), ssh key, aws route 53 domain
 Tested on OSX 11.6
 
@@ -32,6 +45,7 @@ echo "KUBECONFIG SET: $KUBECONFIG"
 #find the AWS VPC_ID in the openshift terraform state file
 if [[ -z "${VPC_ID+x}" ]]; then
   tfstate=$(find "${INSTALL_DIR}" -name "terraform*.tfstate" | head -1)
+  echo "Getting VPC_ID from OpenShift terraform statefile: $tfstate"
   if test -f "${tfstate}"; then
    export VPC_ID=$(cat "${tfstate}" | jq -r -s '.[] | first(.resources[] | select(.module =="module.vpc")).instances[0].attributes.vpc_id')
   fi
@@ -48,7 +62,7 @@ echo "Upgrading VPC to dualstack: $VPC_ID"
 function getVPCIPV6SubnetBlock(){
   _vpc_id=$1
   VPC_SUBNET_BLOCK=$(aws ec2 describe-vpcs --vpc-id $_vpc_id | jq -e -r '.Vpcs[]  | select( has("Ipv6CidrBlockAssociationSet") == true) | .Ipv6CidrBlockAssociationSet[].Ipv6CidrBlock') && result=true || result=false
-  if [ "$result" == false ];then
+  if [[ "$result" == false ]];then
     echo $result
   fi
   echo $VPC_SUBNET_BLOCK
@@ -58,7 +72,7 @@ function getVPCIPV6SubnetBlock(){
 CLUSTER_TAG_NAME=$(aws ec2 describe-vpcs --vpc-id $VPC_ID --query "Vpcs[].Tags[?Key=='Name'][].Value | [0]")
 
 VPC_SUBNET_BLOCK=$(getVPCIPV6SubnetBlock $VPC_ID)
-if [ "$VPC_SUBNET_BLOCK" == false ]; then
+if [[ "$VPC_SUBNET_BLOCK" == false ]]; then
   echo "Attempting to add AWS assigned ipv6 cidr block"
   CIDER_ADDED=$(aws ec2 associate-vpc-cidr-block \
                --amazon-provided-ipv6-cidr-block \
@@ -70,7 +84,7 @@ if [ "$VPC_SUBNET_BLOCK" == false ]; then
     exit 1
   fi
   VPC_SUBNET_BLOCK=$(getVPCIPV6SubnetBlock $VPC_ID)
-  if [ "$VPC_SUBNET_BLOCK" == false ]; then
+  if [[ "$VPC_SUBNET_BLOCK" == false ]]; then
     echo "unable to assign ipv6 block"
     exit 1
   fi
@@ -97,8 +111,8 @@ echo "---------------------------"
 num_ipv6_subnets=${#IPV6SUBNETS[@]}
 num_aws_subnets=${#AWS_SUBNETS[@]}
 
-if [ "$num_ipv6_subnets" -le "$num_aws_subnets" ]; then
-  echo "Test failed: This script assumed Openshift created 16 subnets by default"
+if [[ "$num_ipv6_subnets" -le "$num_aws_subnets" ]]; then
+  echo "Test failed: This script assumed Openshift created ${num_aws_subnets} subnets by default"
   echo "Not enough subnets: $num_ipv6_subnets <= $num_aws_subnets"
   exit 1
 fi
@@ -109,7 +123,7 @@ do
 
   AWS_SUBNETS_W_IPV6=$(echo $AWS_SUBNET_DESC | jq -r '.Subnets[] | select(.Ipv6CidrBlockAssociationSet[].Ipv6CidrBlockState.State=="associated") | .SubnetId' | grep "$SUBNET_ID" || true)
 
-  if [ -z "$AWS_SUBNETS_W_IPV6" ]; then
+  if [[ -z "$AWS_SUBNETS_W_IPV6" ]]; then
     printf "Adding ipv6 block: %s to %s\n"  "${IPV6SUBNETS[$j]}/64" "$SUBNET_ID"
     subnet_applied=$(aws ec2 associate-subnet-cidr-block --subnet-id $SUBNET_ID --ipv6-cidr-block "${IPV6SUBNETS[$j]}/64")
     echo $subnet_applied
@@ -135,7 +149,7 @@ if [ -z "$INTERNET_GATEWAYID" ];then
 fi
 
 ROUTE_TABLE_CHECK=$(echo $ROUTE_TABLES | grep "$INTERNET_GATEWAYID" | wc -l)
-if [ "$ROUTE_TABLE_CHECK" == 0 ]; then
+if [[ "$ROUTE_TABLE_CHECK" == 0 ]]; then
   echo "ADDING public route"
   ADDED_ROUTE=$(aws ec2 create-route --route-table-id $ROUTE_TABLE_ID --destination-ipv6-cidr-block ::/0 --gateway-id $INTERNET_GATEWAYID)
   echo "ADDED_ROUTE $ADDED_ROUTE"
@@ -176,7 +190,7 @@ IFS=$'\n' SECURITY_GROUPS_HAVE_IPV6=($(aws ec2 describe-security-groups \
                                  --filters Name=vpc-id,Values=$VPC_ID  \
                                  --query "SecurityGroups[?IpPermissions[?Ipv6Ranges[?contains(Description,'ipv6-am')]]].{Name:GroupName,ID:GroupId}" | jq -r '.[] | select(.Name | startswith("terraform")) | .ID'))
 
-if [ "${#SECURITY_GROUPS_HAVE_IPV6[@]}" == 0 ];then
+if [[ "${#SECURITY_GROUPS_HAVE_IPV6[@]}" == 0 ]];then
   echo "SECURITY_GROUPS_HAVE_IPV6 not found; assuming ipv6 is needed"
   IFS=$'\n' SECURITY_GROUPS=($(aws ec2 describe-security-groups \
                                    --filters Name=vpc-id,Values=$VPC_ID  \
@@ -209,7 +223,7 @@ IFS=$'\n' ENI_IDS=($(aws ec2 describe-instances \
                        --query 'Reservations[?Instances[?NetworkInterfaces[?length(Ipv6Addresses)==`0`]]]' | \
                        jq -r '.[].Instances[].NetworkInterfaces[].NetworkInterfaceId'))
 
-if [ "${#ENI_IDS[@]}" -gt 0 ];then
+if [[ "${#ENI_IDS[@]}" -gt 0 ]];then
   for eni_id in "${ENI_IDS[@]}"
   do
     echo "Attempting to assign ipv6 address to EC2 ENI: $eni_id"
@@ -227,7 +241,7 @@ LB_ARN=($(aws elbv2 describe-load-balancers  \
           --query "LoadBalancers[?VpcId=='$VPC_ID' && contains(LoadBalancerArn,'ext') && IpAddressType != 'dualstack'].LoadBalancerArn" | \
           jq -r '.[]'))
 
-if [ "${#LB_ARN[@]}" == 1 ];then
+if [[ "${#LB_ARN[@]}" == 1 ]];then
   echo "LoadBalancer ARN found $LB_ARN"
   LB_CONVERTED=$(aws elbv2 set-ip-address-type --load-balancer-arn $LB_ARN --ip-address-type dualstack)
   echo $LB_CONVERTED

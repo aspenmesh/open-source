@@ -4,8 +4,6 @@ aspen-mesh-controlplane:
 
 aspen-mesh-secure-ingress:
   enabled: false
-  externalDnsEnabled: true
-  lets-encrypt-email: YOUR_EMAIL
 
 istio_cni:
   enabled: true

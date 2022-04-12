@@ -1,6 +1,17 @@
 #!/bin/bash
 set -Eueo pipefail
 
+# Portions Copyright Aspen Mesh Authors.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#    http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 usage() {
   cat <<EOF_USAGE
 Created by Aspen Mesh:
@@ -45,7 +56,7 @@ function check_ipv6(){
 
 IPV6_ENABLED=$(check_ipv6)
 echo "IPV6_ENABLED: $IPV6_ENABLED"
-if [ "$IPV6_ENABLED" != "$IPV6_CIDR" ]; then
+if [[ "$IPV6_ENABLED" != "$IPV6_CIDR" ]]; then
   echo "Applying ipv6 network changes"
   (
     cp "${THIS_SCRIPT_DIR}/oc-dualstack-add.yaml" "${INSTALL_DIR}/oc-dualstack-add.yaml"
@@ -59,7 +70,7 @@ if [ "$IPV6_ENABLED" != "$IPV6_CIDR" ]; then
 fi
 
 IPV6_ENABLED=$(check_ipv6)
-if [ "$IPV6_ENABLED" != "$IPV6_CIDR" ]; then
+if [[ "$IPV6_ENABLED" != "$IPV6_CIDR" ]]; then
   echo "FAILED setting up IPV6:$IPV6_ENABLED"
   exit 1
 else
