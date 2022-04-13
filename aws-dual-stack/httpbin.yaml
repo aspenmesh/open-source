@@ -28,7 +28,7 @@ metadata:
     app: httpbin
     service: httpbin
 spec:
-  ipFamilies: [IPv6,IPv4]
+  ipFamilies: [IPv6, IPv4]
   ipFamilyPolicy: RequireDualStack
   ports:
   - name: http

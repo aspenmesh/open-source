@@ -96,14 +96,13 @@ Creates namespace dual-stack and sets up privileges and a sleep and httpbin pod 
 
 
 ```bash
-sleeppod=$($INSTALL_DIR/oc get pods --no-headers -o custom-columns=":metadata.name" --selector=app=sleep )
-$INSTALL_DIR/oc exec -it $sleeppod sh
+sleeppod=$($INSTALL_DIR/oc get pods -n dual-stack --no-headers -o custom-columns=":metadata.name" --selector=app=sleep )
+$INSTALL_DIR/oc exec -n dual-stack -it $sleeppod sh
 
 curl -I -6 httpbin:8000
 curl -I -4 httpbin:8000
 nslookup httpbin.dual-stack.svc.cluster.local
 nslookup -type=aaaa httpbin.dual-stack.svc.cluster.local
-
 ```
 Validate traffic between pods is working
 
