@@ -23,7 +23,3 @@ INGRESS_HOST=$($INSTALL_DIR/kubectl -n istio-system get service istio-ingressgat
 curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
 curl -6 -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
 
-
-
-curl httpbin:8000/get
-

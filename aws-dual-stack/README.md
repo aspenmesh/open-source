@@ -96,13 +96,13 @@ Creates namespace dual-stack and sets up privileges and a sleep and httpbin pod 
 
 
 ```bash
-sleeppod=$($INSTALL_DIR/oc get pods -n dual-stack --no-headers -o custom-columns=":metadata.name" --selector=app=sleep )
-$INSTALL_DIR/oc exec -n dual-stack -it $sleeppod sh
+sleeppod=$(_install_/oc get pods -n dual-stack --no-headers -o custom-columns=":metadata.name" --selector=app=sleep )
+_install_/oc exec -n dual-stack -it $sleeppod sh
 
-curl -I -6 httpbin:8000
-curl -I -4 httpbin:8000
-nslookup httpbin.dual-stack.svc.cluster.local
-nslookup -type=aaaa httpbin.dual-stack.svc.cluster.local
+_install_/oc exec -n dual-stack -it $sleeppod -- curl -I -6 httpbin:8000
+_install_/oc exec -n dual-stack -it $sleeppod -- curl -I -4 httpbin:8000
+_install_/oc exec -n dual-stack -it $sleeppod -- nslookup httpbin.dual-stack.svc.cluster.local
+_install_/oc exec -n dual-stack -it $sleeppod -- nslookup -type=aaaa httpbin.dual-stack.svc.cluster.local
 ```
 Validate traffic between pods is working
 
@@ -112,7 +112,7 @@ Validate traffic between pods is working
 ```
 Validate external traffic is working
 
-### Delete OpenShift internal networking
+### Delete OpenShift Cluster
 
 ```bash
 ./openshift-cluster-delete.sh
