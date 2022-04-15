@@ -1,0 +1,29 @@
+aspen-mesh-controlplane:
+  userAuth:
+    type: oauthOpenshift
+
+aspen-mesh-secure-ingress:
+  enabled: false
+
+istio_cni:
+  enabled: true
+
+sidecarInjectorWebhook:
+  injectedAnnotations:
+    k8s.v1.cni.cncf.io/networks: istio-cni
+
+gateways:
+  istio-ingressgateway:
+    serviceAnnotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+#      unsupported by OpenShift
+#      service.beta.kubernetes.io/aws-load-balancer-ip-address-type: "dualstack"
+#      alb.ingress.kubernetes.io/ip-address-type: "dualstack"
+
+
+
+
+
+
+
+
