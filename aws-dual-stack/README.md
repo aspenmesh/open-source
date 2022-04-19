@@ -115,7 +115,7 @@ Validate external traffic is working
 ### Delete OpenShift Cluster
 
 ```bash
-./openshift-cluster-delete.sh
+./openshift-delete-cluster.sh
 ```
 Removes added AWS infrastructure prior to running the OpenShift Delete
 uses the metadata.json from the cluster creation to delete the existing cluster

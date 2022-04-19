@@ -42,22 +42,11 @@ workdir=_install_
 export INSTALL_DIR="${workdir}"
 export KUBECONFIG="${INSTALL_DIR}/auth/kubeconfig"
 echo "KUBECONFIG SET: $KUBECONFIG"
-#find the AWS VPC_ID in the openshift terraform state file
-if [[ -z "${VPC_ID+x}" ]]; then
-  tfstate=$(find "${INSTALL_DIR}" -name "terraform*.tfstate" | head -1)
-  echo "Getting VPC_ID from OpenShift terraform statefile: $tfstate"
-  if test -f "${tfstate}"; then
-   export VPC_ID=$(cat "${tfstate}" | jq -r -s '.[] | first(.resources[] | select(.module =="module.vpc")).instances[0].attributes.vpc_id')
-  fi
-fi
 
-if [[ -z "${VPC_ID+x}" ]]; then
-  echo "VPC_ID required"
-  exit 1
-fi
+scriptdir=$(dirname "$0")
+source "${scriptdir}/vpcid.sh"
 
 echo "Upgrading VPC to dualstack: $VPC_ID"
-
 
 function getVPCIPV6SubnetBlock(){
   _vpc_id=$1

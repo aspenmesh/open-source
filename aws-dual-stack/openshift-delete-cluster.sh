@@ -31,19 +31,8 @@ export KUBECONFIG="$INSTALL_DIR/auth/kubeconfig"
 export OC_INSTALL_CMD="$INSTALL_DIR/openshift-install"
 export KC_CMD="$INSTALL_DIR/kubectl"
 
-#find the AWS VPC_ID so resources in the VPC can be destroyed
-if [[ -z "${VPC_ID+x}" ]]; then
-  tfstate=$(find "${INSTALL_DIR}" -name "terraform*.tfstate" | head -1)
-  echo "Getting VPC_ID from OpenShift terraform statefile: $tfstate"
-  if test -f "${tfstate}"; then
-   export VPC_ID=$(cat "${tfstate}" | jq -r -s '.[] | first(.resources[] | select(.module =="module.vpc")).instances[0].attributes.vpc_id')
-  fi
-fi
-
-if [[ -z "${VPC_ID+x}" ]]; then
-  echo "VPC_ID required"
-  exit 1
-fi
+scriptdir=$(dirname "$0")
+source "${scriptdir}/vpcid.sh"
 
 EGRESS_GATEWAY_ID=$(aws ec2 describe-egress-only-internet-gateways --query "EgressOnlyInternetGateways[?Attachments[?VpcId=='$VPC_ID']]" | jq -r '.[].EgressOnlyInternetGatewayId')
 if [ ! -z "$EGRESS_GATEWAY_ID" ];then
