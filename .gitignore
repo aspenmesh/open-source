@@ -1,1 +1,3 @@
 aws-dual-stack/_install_/*
+.envrc
+.idea

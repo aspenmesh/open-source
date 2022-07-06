@@ -17,11 +17,9 @@ scriptName=$(basename "$0")
 workdir=_install_
 ##################### EDIT PARAMETERS ###########################
 
-installer_tar="openshift-install-mac.tar.gz"
-client_tar="openshift-client-mac.tar.gz"
-base_domain="DOMAIN_NAME_IN_ROUTE_53"
-ssh_pub_key=$(cat $workdir/openshift-test-ssh.pub)
-pull_secret=$(cat $workdir/pull-secret.txt)
+base_domain="dev.twistio.io"
+ssh_pub_key=$(cat $workdir/id_rsa.pub)
+pull_secret=$(echo $PULL_SECRET_B64 | base64 -d)
 
 ##################################################################
 
@@ -32,44 +30,25 @@ This script is intended to create or delete an openshift 4.x cluster on aws
 Requires: yq 3.4.1, aws cli <2.4.21, openshift (installer, client, pull secret), ssh key, aws route 53 domain
 Tested on OSX 11.6
 
-Usage: ${scriptName} <cluster_name>
-Arguments:
-                cluster_name: [string]
+Usage: ${scriptName}
+ENV:
+                CLUSTER_NAME: [string]
 EOF_USAGE
   exit 1
 }
 
-if [ $# -lt 1 ]; then
-  usage
-  exit 1
-fi
-
-cluster_name=$1
+cluster_name=$CLUSTER_NAME
 
 cp template.install-config.yaml $workdir/install-config.yaml
 cd $workdir
 
-#shim yq 3.4 cant be installed easily in osx
-yq() {
-    docker run --rm -i -v ${PWD}:/workdir mikefarah/yq:3.4.1 yq "$@"
-}
+##shim yq 3.4 cant be installed easily in osx
+#yq() {
+#    docker run --rm -i -v ${PWD}:/workdir mikefarah/yq:3.4.1 yq "$@"
+#}
 
-function validate_reqs(){
-  reqs=("aws" "yq" "tar")
-  for i in $reqs; do
-    if ! command -v $i &> /dev/null
-    then
-        echo "$i could not be found"
-        exit 1
-    fi
-  done
-}
 
 function prep_cluster(){
-
-  # extract tar files
-  tar -xf  "${installer_tar}"
-  tar -xf  "${client_tar}"
 
   yq w -i -- install-config.yaml 'baseDomain' "${base_domain}" || {
    echo "Error: failed to set metadata.name"
@@ -99,12 +78,10 @@ function prep_cluster(){
   fi
 }
 
-validate_reqs
 echo "Info: start creating OpenShift cluster: name=$cluster_name, workdir=$workdir ..."
 prep_cluster
 ./openshift-install create cluster --dir=. --log-level=debug || {
  echo "Error: failed to create cluster: ${cluster_name}"
- return 1
 }
 
 echo "Info: cluster ${cluster_name} is sucessfully created"

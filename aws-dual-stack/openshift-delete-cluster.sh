@@ -33,6 +33,7 @@ export KC_CMD="$INSTALL_DIR/kubectl"
 
 scriptdir=$(dirname "$0")
 source "${scriptdir}/vpcid.sh"
+VPC_ID=$(getVPCID)
 
 EGRESS_GATEWAY_ID=$(aws ec2 describe-egress-only-internet-gateways --query "EgressOnlyInternetGateways[?Attachments[?VpcId=='$VPC_ID']]" | jq -r '.[].EgressOnlyInternetGatewayId')
 if [ ! -z "$EGRESS_GATEWAY_ID" ];then

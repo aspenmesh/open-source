@@ -1,0 +1,39 @@
+# sample overrides-aspenmesh.yaml that MUST be tailored before use!
+aspen-mesh-controlplane:
+  userAuth:
+    type: oauthOpenshift
+    oauthOpenshift:
+      host: dashboard.apps.${CLUSTER_NAME}.dev.twistio.io
+
+aspen-mesh-secure-ingress:
+  enabled: false
+  externalDnsEnabled: true
+
+global:
+  #  hub: quay.io/aspenmesh/releases-pr
+  #  publicImagesHub: quay.io/aspenmesh/am-istio-pr
+  proxy:
+    image: proxyv2-debug
+  dualStack: true
+  ingressGatewayDualStack: true
+  imagePullSecrets:
+    - aspen-mesh-pull-secret
+    - aspenmesh-istio-private-pr-pull-secret-secret
+    - aspenmesh-releases-pull-secret
+
+istio_cni:
+  enabled: true
+
+sidecarInjectorWebhook:
+  injectedAnnotations:
+    k8s.v1.cni.cncf.io/networks: istio-cni
+
+gateways:
+  istio-ingressgateway:
+    serviceAnnotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-ip-address-type: "dualstack"
+      alb.ingress.kubernetes.io/ip-address-type: "dualstack"
+
+meshConfig:
+  accessLogFile: /dev/stdout
