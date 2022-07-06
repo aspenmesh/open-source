@@ -49,6 +49,11 @@ cluster_name=$1
 cp template.install-config.yaml $workdir/install-config.yaml
 cd $workdir
 
+#shim yq 3.4 cant be installed easily in osx
+yq() {
+    docker run --rm -i -v ${PWD}:/workdir mikefarah/yq:3.4.1 yq "$@"
+}
+
 function validate_reqs(){
   reqs=("aws" "yq" "tar")
   for i in $reqs; do
