@@ -133,6 +133,11 @@ docker login registry.redhat.io
 docker pull registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b
 docker run --rm -it registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b oc -version
 
+#on osx with an M1 arm proccessor
+
+Add this flag to all docker commands
+`--platform linux/amd64`
+
 #setup .envrc file
 
 ```shell
