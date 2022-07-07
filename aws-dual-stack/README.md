@@ -13,6 +13,7 @@ Pull Requests are welcome, we have tested these scripts on OSX.
 **Requirements:**
 - yq 3.4.1, aws cli <2.4.21, openshift (installer, client, pull secret), ssh key, aws route 53 domain
 - AWS environment variables
+- direnv
 
 ### Prepare for installation
 
@@ -125,46 +126,49 @@ uses the metadata.json from the cluster creation to delete the existing cluster
 
 
 ---------------------------------
+#OpenShift Cluster manager
+
+Utility to simplify how to create an openshift cluster in AWS using route53 for subdomain.
 
 
 #setup
+
+Make sure docker has this folder or parent shared for mounting volumes
 
 docker login registry.redhat.io
 docker pull registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b
 docker run --rm -it registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b oc -version
 
-#on osx with an M1 arm proccessor
+### OSx with an M1 arm processor
 
 Add this flag to all docker commands
 `--platform linux/amd64`
 
-#setup .envrc file
+###setup .envrc file
 
+_assumes use of direnv_
 ```shell
 #must use AspenMesh OpenShift Credentials
-AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-CLUSTER_NAME=josht-test-docker
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=
+BASE_DOMAIN=
+#cluster name becomes sub-domain
+CLUSTER_NAME=test-docker
 PULL_SECRET_B64=$(cat pull-secret.txt | base64)
 #or
 PULL_SECRET_B64=$(echo 'PASTE_KEY_HERE' | base64)
-
 ```
 
 ```shell
-docker build -t octest .
+direnv allow
+docker build -t oc-test .
 #keep your generated creds for next use
 mkdir -p _install_
-docker run -it -v $(pwd)/_install_:/root/_install_ --env-file .envrc --name octest octest
-#or exec into it if you have already started it
-docker exec -it octest /bin/bash
-```
+docker run -it -v $(pwd)/_install_:/root/_install_ --env-file .envrc --name oc-test oc-test
 
-#how to get openshift keys
-```shell
-secrets=$(aws secretsmanager get-secret-value --secret-id openshift_passthrough_credentials --region us-west-2 | jq -r '.SecretString' )
-export AWS_ACCESS_KEY_ID=$(echo $secrets | jq -r '.aws_access_key_id')
-export AWS_SECRET_ACCESS_KEY=$(echo $secrets | jq -r '.aws_secret_access_key')
-export AWS_DEFAULT_REGION=us-west-2
-export AWS_PROFILE=openshift_dev
+#or exec into it if you have already started it
+docker exec -it oc-test /bin/bash
+docker stop oc-test
+docker start oc-test
 ```

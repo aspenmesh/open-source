@@ -17,7 +17,7 @@ scriptName=$(basename "$0")
 workdir=_install_
 ##################### EDIT PARAMETERS ###########################
 
-base_domain="dev.twistio.io"
+base_domain=$BASE_DOMAIN
 ssh_pub_key=$(cat $workdir/id_rsa.pub)
 pull_secret=$(echo $PULL_SECRET_B64 | base64 -d)
 
@@ -42,11 +42,9 @@ cluster_name=$CLUSTER_NAME
 cp template.install-config.yaml $workdir/install-config.yaml
 cd $workdir
 
-##shim yq 3.4 cant be installed easily in osx
-#yq() {
-#    docker run --rm -i -v ${PWD}:/workdir mikefarah/yq:3.4.1 yq "$@"
-#}
-
+if [ ! -f "/root/_install_/id_rsa" ]; then
+  ssh-keygen -b 2048 -t rsa -f /root/_install_/id_rsa -q -N ""
+fi
 
 function prep_cluster(){
 
