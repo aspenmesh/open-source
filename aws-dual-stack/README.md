@@ -13,6 +13,7 @@ Pull Requests are welcome, we have tested these scripts on OSX.
 **Requirements:**
 - yq 3.4.1, aws cli <2.4.21, openshift (installer, client, pull secret), ssh key, aws route 53 domain
 - AWS environment variables
+- direnv
 
 ### Prepare for installation
 
@@ -24,7 +25,7 @@ _install_ is purposefully in the gitignore so secrets are not leaked.
 Download openshift installer to the _install_ directory
 https://developers.redhat.com/products/openshift/download
 - "Install Red Hat OpenShift on your laptop"
-- click "Downloads" on left menu 
+- click "Downloads" on left menu
 - Download "OpenShift command-line interface (oc)"
 - Download "OpenShift for x86_64 Installer"
 - Scroll to bottom "Tokens" Download Pull Secret _install_/pull-secret.txt
@@ -56,10 +57,10 @@ We chose an upgrade path because the OpenShift installer does not yet have the a
 
 **Known issues:**
 1. Adding a new Istio ingress gateway by default uses an AWS classic Load Balancer. The LB has be overridden to use an NLB
-instead of a classic. 
-2. The next problem is that the annotation for setting the AWS NLB to dualstack is currently unsupported 
-in the latest OpenShift 4.10 controller. This means that even with this NLB setting you will need to manually change the LB from 
-`ipv4` to `dualstack`
+   instead of a classic.
+2. The next problem is that the annotation for setting the AWS NLB to dualstack is currently unsupported
+   in the latest OpenShift 4.10 controller. This means that even with this NLB setting you will need to manually change the LB from
+   `ipv4` to `dualstack`
 ```istio
 gateways:
   istio-ingressgateway:
@@ -76,7 +77,7 @@ gateways:
 ```bash
 ./openshift-upgrade-cluster.sh test-openshift
 ```
-Running the upgrade-cluster adds dual stack networking to the openshift cluster internals and will allow traffic to 
+Running the upgrade-cluster adds dual stack networking to the openshift cluster internals and will allow traffic to
 use dualstack capabilities.
 
 ### Install AspenMesh ( DualStack features have not yet been released into opensource Istio )
@@ -84,7 +85,7 @@ use dualstack capabilities.
 - Sign up for an account https://aspenmesh.io/invite/
 - Visit https://my.aspenmesh.io/
 - Follow the documentation
-  - Install 1.11.8-am2 **(Istio + Dual Stack features)** sample [overrides](overrides.yaml) for OpenShift
+    - Install 1.11.8-am2 **(Istio + Dual Stack features)** sample [overrides](overrides.yaml) for OpenShift
 
 ### Setup Test Pods and data
 
@@ -122,3 +123,52 @@ uses the metadata.json from the cluster creation to delete the existing cluster
 
 
 
+
+
+---------------------------------
+#OpenShift Cluster manager
+
+Utility to simplify how to create an openshift cluster in AWS using route53 for subdomain.
+
+
+#setup
+
+Make sure docker has this folder or parent shared for mounting volumes
+
+docker login registry.redhat.io
+docker pull registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b
+docker run --rm -it registry.redhat.io/openshift4/ose-cli@sha256:1f033730b321137c1b834b0bcb7ea15a72f21d51e1960f89fa2cf85268dd886b oc -version
+
+### OSx with an M1 arm processor
+
+Add this flag to all docker commands
+`--platform linux/amd64`
+
+###setup .envrc file
+
+_assumes use of direnv_
+```shell
+#must use AspenMesh OpenShift Credentials
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=
+BASE_DOMAIN=
+#cluster name becomes sub-domain
+CLUSTER_NAME=test-docker
+PULL_SECRET_B64=$(cat pull-secret.txt | base64)
+#or
+PULL_SECRET_B64=$(echo 'PASTE_KEY_HERE' | base64)
+```
+
+```shell
+direnv allow
+docker build -t oc-test .
+#keep your generated creds for next use
+mkdir -p _install_
+docker run -it -v $(pwd)/_install_:/root/_install_ --env-file .envrc --name oc-test oc-test
+
+#or exec into it if you have already started it
+docker exec -it oc-test /bin/bash
+docker stop oc-test
+docker start oc-test
+```
